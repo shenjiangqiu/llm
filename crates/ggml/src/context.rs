@@ -2,8 +2,9 @@ use std::{
     collections::HashMap,
     ffi::c_void,
     os::raw::c_int,
+    path::Path,
     ptr::NonNull,
-    sync::{Arc, Mutex}, path::Path,
+    sync::{Arc, Mutex},
 };
 
 use memmap2::Mmap;
@@ -273,15 +274,15 @@ impl Context {
     }
     // /// write all recorded tensors to disk
     // pub fn write_to_disk(&self,file_path:&Path){
-    //     let all_tensors = 
+    //     let all_tensors =
     // }
     // /// get all recorded tensors
     // pub fn get_all_recorded_tensors(&self)->HashMap<String,FlatTensor>{}
 }
 
-struct FlatTensor<T>{
-    ne:[usize;4],
-    data:Vec<T>,
+struct FlatTensor<T> {
+    ne: [usize; 4],
+    data: Vec<T>,
 }
 // Operations
 impl Context {
@@ -317,7 +318,7 @@ impl Context {
     }
 
     /// print the tensor
-    pub fn op_print(&self,a:&Tensor)->Tensor{
+    pub fn op_print(&self, a: &Tensor) -> Tensor {
         let tensor = unsafe { sys::ggml_print_inplace(self.as_ptr(), a.ptr.as_ptr()) };
         self.new_tensor_raw(tensor)
     }

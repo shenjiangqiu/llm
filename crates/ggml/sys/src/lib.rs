@@ -1080,10 +1080,7 @@ extern "C" {
     ) -> *mut ggml_tensor;
 }
 extern "C" {
-    pub fn ggml_print_inplace(
-        ctx: *mut ggml_context,
-        a: *mut ggml_tensor,
-    ) -> *mut ggml_tensor;
+    pub fn ggml_print_inplace(ctx: *mut ggml_context, a: *mut ggml_tensor) -> *mut ggml_tensor;
 }
 extern "C" {
     pub fn ggml_acc(
