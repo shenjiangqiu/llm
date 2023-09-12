@@ -332,7 +332,7 @@ impl KnownModel for Llama {
                 current = ctx0.op_mul_mat(&self.layers[il].w2, &current);
 
                 current = ctx0.op_add(&current, &input_feed_forward);
-
+                current = ctx0.op_print(&current);
                 // input for next layer
                 input_layer = current;
             }

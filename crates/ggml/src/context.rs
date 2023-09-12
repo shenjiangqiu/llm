@@ -3,7 +3,7 @@ use std::{
     ffi::c_void,
     os::raw::c_int,
     ptr::NonNull,
-    sync::{Arc, Mutex},
+    sync::{Arc, Mutex}, path::Path,
 };
 
 use memmap2::Mmap;
@@ -271,6 +271,17 @@ impl Context {
     pub fn storage(&self) -> &ContextStorage {
         self.storage.as_ref().unwrap()
     }
+    // /// write all recorded tensors to disk
+    // pub fn write_to_disk(&self,file_path:&Path){
+    //     let all_tensors = 
+    // }
+    // /// get all recorded tensors
+    // pub fn get_all_recorded_tensors(&self)->HashMap<String,FlatTensor>{}
+}
+
+struct FlatTensor<T>{
+    ne:[usize;4],
+    data:Vec<T>,
 }
 // Operations
 impl Context {
@@ -302,6 +313,12 @@ impl Context {
     /// Creates a new tensor with the multiplication of `a` and `b`. Supports broadcasting if the dimensions are compatible, menaing the first dimensions of `a` must be devisible by the first dimensions of `b`.
     pub fn op_mul(&self, a: &Tensor, b: &Tensor) -> Tensor {
         let tensor = unsafe { sys::ggml_mul(self.as_ptr(), a.ptr.as_ptr(), b.ptr.as_ptr()) };
+        self.new_tensor_raw(tensor)
+    }
+
+    /// print the tensor
+    pub fn op_print(&self,a:&Tensor)->Tensor{
+        let tensor = unsafe { sys::ggml_print_inplace(self.as_ptr(), a.ptr.as_ptr()) };
         self.new_tensor_raw(tensor)
     }
 
