@@ -1,0 +1,16 @@
+[package]
+name = "rust_utils"
+version = "0.1.0"
+edition = "2021"
+
+# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+
+#nothing
+[dependencies]
+bincode = { workspace = true }
+lazy_static = { workspace = true }
+serde = { workspace = true }
+[lib]
+crate-type = ["cdylib", "rlib", "staticlib"]
+[build-dependencies]
+cbindgen = "0.26.0"

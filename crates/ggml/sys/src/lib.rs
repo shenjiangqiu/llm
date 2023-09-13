@@ -146,6 +146,10 @@ pub const ggml_op_GGML_OP_MAP_CUSTOM3: ggml_op = 56;
 pub const ggml_op_GGML_OP_CROSS_ENTROPY_LOSS: ggml_op = 57;
 pub const ggml_op_GGML_OP_CROSS_ENTROPY_LOSS_BACK: ggml_op = 58;
 pub const ggml_op_GGML_OP_COUNT: ggml_op = 59;
+pub const ggml_op_GGML_OP_PRINT: ggml_op = 60;
+pub const ggml_op_GGML_OP_SAVE_TENSOR: ggml_op = 61;
+pub const ggml_op_GGML_OP_SAVE_FILE: ggml_op = 62;
+pub const ggml_op_GGML_OP_SAVE_INPUT_RECORD: ggml_op = 63;
 pub type ggml_op = ::std::os::raw::c_uint;
 pub const ggml_unary_op_GGML_UNARY_OP_ABS: ggml_unary_op = 0;
 pub const ggml_unary_op_GGML_UNARY_OP_SGN: ggml_unary_op = 1;
@@ -157,11 +161,11 @@ pub const ggml_unary_op_GGML_UNARY_OP_RELU: ggml_unary_op = 6;
 pub const ggml_unary_op_GGML_UNARY_OP_GELU: ggml_unary_op = 7;
 pub const ggml_unary_op_GGML_UNARY_OP_GELU_QUICK: ggml_unary_op = 8;
 pub const ggml_unary_op_GGML_UNARY_OP_SILU: ggml_unary_op = 9;
-pub type ggml_unary_op = ::std::os::raw::c_int;
+pub type ggml_unary_op = ::std::os::raw::c_uint;
 pub const ggml_object_type_GGML_OBJECT_TENSOR: ggml_object_type = 0;
 pub const ggml_object_type_GGML_OBJECT_GRAPH: ggml_object_type = 1;
 pub const ggml_object_type_GGML_OBJECT_WORK_BUFFER: ggml_object_type = 2;
-pub type ggml_object_type = ::std::os::raw::c_int;
+pub type ggml_object_type = ::std::os::raw::c_uint;
 #[repr(C)]
 #[derive(Debug, Copy, Clone)]
 pub struct ggml_object {
@@ -1079,8 +1083,52 @@ extern "C" {
         b: *mut ggml_tensor,
     ) -> *mut ggml_tensor;
 }
+pub type ggml_print_callback = ::std::option::Option<
+    unsafe extern "C" fn(
+        str_: *const ::std::os::raw::c_char,
+        data: *const f32,
+        ne: *const [::std::os::raw::c_long; 4usize],
+        nb: *const [::std::os::raw::c_ulong; 4usize],
+    ),
+>;
 extern "C" {
-    pub fn ggml_print_inplace(ctx: *mut ggml_context, a: *mut ggml_tensor) -> *mut ggml_tensor;
+    pub fn ggml_print_inplace(
+        ctx: *mut ggml_context,
+        a: *mut ggml_tensor,
+        callback: ggml_print_callback,
+    ) -> *mut ggml_tensor;
+}
+pub type save_input_callback = ::std::option::Option<unsafe extern "C" fn()>;
+extern "C" {
+    pub fn ggml_save_input_record(
+        ctx: *mut ggml_context,
+        a: *mut ggml_tensor,
+        callback: save_input_callback,
+    ) -> *mut ggml_tensor;
+}
+pub type ggml_save_callback = ::std::option::Option<
+    unsafe extern "C" fn(
+        str_: *const ::std::os::raw::c_char,
+        data: *const f32,
+        ne: *const [::std::os::raw::c_long; 4usize],
+        nb: *const [::std::os::raw::c_ulong; 4usize],
+    ),
+>;
+extern "C" {
+    pub fn ggml_save_tensor_inplace(
+        ctx: *mut ggml_context,
+        a: *mut ggml_tensor,
+        callback: ggml_save_callback,
+    ) -> *mut ggml_tensor;
+}
+pub type ggml_save_file_callback =
+    ::std::option::Option<unsafe extern "C" fn(str_: *const ::std::os::raw::c_char)>;
+extern "C" {
+    pub fn ggml_save_file_inplace(
+        ctx: *mut ggml_context,
+        a: *mut ggml_tensor,
+        callback: ggml_save_file_callback,
+    ) -> *mut ggml_tensor;
 }
 extern "C" {
     pub fn ggml_acc(
@@ -1656,7 +1704,7 @@ extern "C" {
 pub const ggml_op_pool_GGML_OP_POOL_MAX: ggml_op_pool = 0;
 pub const ggml_op_pool_GGML_OP_POOL_AVG: ggml_op_pool = 1;
 pub const ggml_op_pool_GGML_OP_POOL_COUNT: ggml_op_pool = 2;
-pub type ggml_op_pool = ::std::os::raw::c_int;
+pub type ggml_op_pool = ::std::os::raw::c_uint;
 extern "C" {
     pub fn ggml_pool_1d(
         ctx: *mut ggml_context,

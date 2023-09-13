@@ -1,5 +1,6 @@
 use std::{
     convert::Infallible,
+    ffi::CString,
     fs::File,
     io::{BufReader, BufWriter},
 };
@@ -24,7 +25,7 @@ fn main() -> eyre::Result<()> {
     color_eyre::install()?;
 
     let args = Args::parse();
-    match args {
+    let r = match args {
         Args::Infer(args) => infer(&args),
         Args::Perplexity(args) => perplexity(&args),
         Args::Info(args) => info(&args),
@@ -32,7 +33,12 @@ fn main() -> eyre::Result<()> {
         Args::Repl(args) => interactive::repl(&args),
         Args::Chat(args) => interactive::chat(&args),
         Args::Quantize(args) => quantize(&args),
-    }
+    };
+
+    // save the content to file
+    let file_name = CString::new("input_record.bin").unwrap();
+    rust_utils::rust_utils_save_elements(file_name.as_ptr());
+    r
 }
 
 #[tracing::instrument(skip_all)]

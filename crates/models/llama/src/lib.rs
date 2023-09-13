@@ -150,7 +150,10 @@ impl KnownModel for Llama {
         let input_len = input_tokens.len();
         let session_len = session.n_past;
         let ctx_size = self.params.context_size;
-
+        let input_tokens_string = self.tokenizer.decode(input_tokens.to_vec(), true);
+        let input_tokens_string: String =
+            input_tokens_string.into_iter().map(|i| i as char).collect();
+        *rust_utils::CURRENT_INPUT_TOKEN.write().unwrap() = input_tokens_string;
         let Hyperparameters {
             n_vocab,
             n_embd,
@@ -274,11 +277,16 @@ impl KnownModel for Llama {
                 let k_q_masked = ctx0
                     .op_diag_mask_inf_inplace(&k_q_scaled, session_len)
                     .set_name("KQ_masked");
+                let name = format!("KQ_masked_{}", il);
+                let k_q_masked = ctx0.op_save_tensor(&k_q_masked).set_name(&name);
 
                 // KQ = soft_max(KQ_masked)
                 let k_q_soft_max = ctx0
                     .op_soft_max_inplace(&k_q_masked)
                     .set_name("KQ_soft_max");
+
+                let name = format!("k_q_soft_max_{}", il);
+                let k_q_soft_max = ctx0.op_save_tensor(&k_q_soft_max).set_name(&name);
 
                 // split cached V into n_head heads
                 let v = ctx0
@@ -294,6 +302,9 @@ impl KnownModel for Llama {
                     .set_name("V");
 
                 let k_q_v = ctx0.op_mul_mat(&v, &k_q_soft_max).set_name("KQV");
+
+                let name = format!("k_q_v_{}", il);
+                let k_q_v = ctx0.op_save_tensor(&k_q_v).set_name(&name);
 
                 // KQV_merged = KQV.permute(0, 2, 1, 3)
                 let k_q_v_merged = ctx0.op_permute(&k_q_v, (0, 2, 1, 3)).set_name("KQV_merged");
@@ -332,10 +343,19 @@ impl KnownModel for Llama {
                 current = ctx0.op_mul_mat(&self.layers[il].w2, &current);
 
                 current = ctx0.op_add(&current, &input_feed_forward);
-                current = ctx0.op_print(&current);
                 // input for next layer
                 input_layer = current;
             }
+            // save the tensor:
+
+            // println!("plan to saving file:{}.bin", input_tokens_string);
+            // let name = format!("{}.bin", input_tokens_string);
+            // input_layer = ctx0.op_save_file(&input_layer).set_name(&name);
+            // tell the rust utils to save this input record
+
+            input_layer = ctx0
+                .op_save_input_record(&input_layer)
+                .set_name("input_record");
 
             ctx0.use_scratch(builder.get_scratch(0));
 
@@ -360,7 +380,6 @@ impl KnownModel for Llama {
                 },
             )
         });
-
         // finish evaluation
         common::read_last_token(session, &outputs.result, n_vocab, input_len);
         common::extract_logits(output_request, &outputs.result, n_vocab, input_len);

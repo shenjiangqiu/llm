@@ -1,4 +1,14 @@
 {
   "rust-analyzer.cargo.features": [],
-  "editor.formatOnSave": false
+  "editor.formatOnSave": true,
+  "files.associations": {
+    "*.fragmentshader": "glsl",
+    "*.vertexshader": "glsl",
+    "*.py": "python",
+    "chrono": "c",
+    "functional": "c",
+    "sstream": "c",
+    "regex": "c",
+    "random": "c"
+  }
 }

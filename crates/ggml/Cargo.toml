@@ -8,10 +8,9 @@ license = "MIT"
 
 [dependencies]
 ggml-sys = { path = "sys", version = "0.2.0-dev" }
-
 thiserror = { workspace = true }
 memmap2 = { workspace = true }
-
+rust_utils = { path = "../rust_utils" }
 [dev-dependencies]
 rand = { workspace = true }
 anyhow = { workspace = true }

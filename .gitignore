@@ -2,3 +2,5 @@
 /models
 .DS_Store
 /.tests
+out.txt
+crates/rust_utils/target

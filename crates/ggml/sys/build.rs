@@ -15,13 +15,19 @@ fn main() {
         .files(["llama-cpp/ggml.c", "llama-cpp/k_quants.c"])
         .define("GGML_USE_K_QUANTS", None)
         .includes(["llama-cpp"]);
-
     // This is a very basic heuristic for applying compile flags.
     // Feel free to update this to fit your operating system.
     let target_arch = env::var("CARGO_CFG_TARGET_ARCH").unwrap();
     let target_os = env::var("CARGO_CFG_TARGET_OS").unwrap();
     let is_release = env::var("PROFILE").unwrap() == "release";
     let compiler = build.get_compiler();
+    // if is_release{
+    //     println!("cargo:rustc-link-search=native={}/release", target_dir);
+    
+    // }else {
+    //     println!("cargo:rustc-link-search=native={}/debug", target_dir);
+    // }
+
 
     // Enable accelerators
     let out_dir = PathBuf::from(env::var("OUT_DIR").expect("OUT_DIR is not defined"));
