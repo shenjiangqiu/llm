@@ -16,6 +16,7 @@ lazy_static! {
 }
 
 pub fn save_input() {
+    // println!("save current input");
     let saved_tensors = std::mem::replace(
         SAVED_TENSORS.write().unwrap().deref_mut(),
         Default::default(),
@@ -24,6 +25,9 @@ pub fn save_input() {
         CURRENT_INPUT_TOKEN.write().unwrap().deref_mut(),
         Default::default(),
     );
+    // println!("current input token:{}", current_input_token);
+    // println!("saved tensors len: {}", saved_tensors.tensors.len());
+
     SAVED_INPUTS_RECORD
         .write()
         .unwrap()
@@ -42,6 +46,8 @@ pub extern "C" fn rust_utils_hello() {
 pub extern "C" fn rust_utils_clear() {
     let mut value = SAVED_TENSORS.write().unwrap();
     value.tensors.clear();
+    let mut value = SAVED_INPUTS_RECORD.write().unwrap();
+    value.records.clear();
 }
 
 #[no_mangle]
@@ -77,6 +83,40 @@ pub fn no_padding(ne: &[i64; 4], nb: &[usize; 4]) -> bool {
     nb[1] == no_padding_nb1
 }
 
+pub extern "C" fn save_tensor_callback(
+    name: *const i8,
+    data: *const f32,
+    ne: *const [i64; 4],
+    nb: *const [u64; 4],
+) {
+    let ne: &[i64; 4] = unsafe { &*ne };
+    let nb: &[u64; 4] = unsafe { &*nb };
+    rust_utils_add_element(name, data, ne, nb);
+}
+pub extern "C" fn save_file_callback(name: *const i8) {
+    rust_utils_save_elements(name);
+    rust_utils_clear();
+}
+pub extern "C" fn save_input_record_callback() {
+    save_input();
+}
+pub extern "C" fn print_callback(
+    name: *const i8,
+    data: *const f32,
+    ne: *const [i64; 4],
+    nb: *const [u64; 4],
+) {
+    let ne = unsafe { &*ne };
+    let nb = unsafe { &*nb };
+    assert_eq!(nb[0], 4);
+    let data_len = ne[3] as u64 * nb[3];
+    let data_slice = unsafe { std::slice::from_raw_parts(data, (data_len / 4) as usize) };
+    let name = unsafe { CStr::from_ptr(name) };
+    println!("tensor: {name:?}:");
+
+    print_tensor(data_slice, ne, nb);
+}
+
 #[no_mangle]
 /// add a tensor to the saved tensors, the data are ggml format
 /// - `name` is the name of the tensor, should be valid c/c++ string
@@ -110,6 +150,11 @@ pub extern "C" fn rust_utils_save_elements(path: *const c_char) {
     value.save_to_file(Path::new(path));
 }
 
+pub fn save_file(path: impl AsRef<Path>) {
+    let value = SAVED_INPUTS_RECORD.read().unwrap();
+    value.save_to_file(path);
+}
+
 #[no_mangle]
 /// load from a file
 pub extern "C" fn rust_utils_load_elements(path: *const c_char) {
@@ -132,7 +177,7 @@ pub struct InputRecord {
 }
 
 impl InputRecord {
-    pub fn save_to_file(&self, file: &Path) {
+    pub fn save_to_file(&self, file: impl AsRef<Path>) {
         bincode::serialize_into(BufWriter::new(File::create(file).unwrap()), self).unwrap();
     }
 }

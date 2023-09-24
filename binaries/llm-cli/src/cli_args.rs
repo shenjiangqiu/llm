@@ -82,7 +82,8 @@ pub struct Infer {
     /// Use this with `-n 0` to save just the prompt
     #[arg(long, default_value = None)]
     pub save_session: Option<PathBuf>,
-
+    #[arg(long)]
+    pub save_tensor_path: PathBuf,
     /// Loads an inference session from the given path if present, and then saves
     /// the result to the same path after inference is completed.
     ///

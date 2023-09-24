@@ -1,6 +1,6 @@
 use std::{
     collections::HashMap,
-    ffi::{c_void, CStr},
+    ffi::c_void,
     os::raw::c_int,
     ptr::NonNull,
     sync::{Arc, Mutex},
@@ -311,77 +311,28 @@ impl Context {
         let tensor = unsafe { sys::ggml_mul(self.as_ptr(), a.ptr.as_ptr(), b.ptr.as_ptr()) };
         self.new_tensor_raw(tensor)
     }
-    extern "C" fn print_callback(
-        name: *const i8,
-        data: *const f32,
-        ne: *const [i64; 4],
-        nb: *const [u64; 4],
-    ) {
-        let ne = unsafe { &*ne };
-        let nb = unsafe { &*nb };
-        assert_eq!(nb[0], 4);
-        let data_len = ne[3] as u64 * nb[3];
-        let data_slice = unsafe { std::slice::from_raw_parts(data, (data_len / 4) as usize) };
-        let name = unsafe { CStr::from_ptr(name) };
-        println!("tensor: {name:?}:");
 
-        rust_utils::print_tensor(data_slice, ne, nb);
-    }
     /// print the tensor
     pub fn op_print(&self, a: &Tensor) -> Tensor {
-        let tensor = unsafe {
-            sys::ggml_print_inplace(self.as_ptr(), a.ptr.as_ptr(), Some(Self::print_callback))
-        };
+        let tensor = unsafe { sys::ggml_print_inplace(self.as_ptr(), a.ptr.as_ptr()) };
         self.new_tensor_raw(tensor)
     }
-    extern "C" fn save_tensor_callback(
-        name: *const i8,
-        data: *const f32,
-        ne: *const [i64; 4],
-        nb: *const [u64; 4],
-    ) {
-        let ne: &[i64; 4] = unsafe { &*ne };
-        let nb: &[u64; 4] = unsafe { &*nb };
-        rust_utils::rust_utils_add_element(name, data, ne, nb);
-    }
+
     /// save the tensor
     pub fn op_save_tensor(&self, a: &Tensor) -> Tensor {
-        let tensor = unsafe {
-            sys::ggml_save_tensor_inplace(
-                self.as_ptr(),
-                a.ptr.as_ptr(),
-                Some(Self::save_tensor_callback),
-            )
-        };
+        let tensor = unsafe { sys::ggml_save_tensor_inplace(self.as_ptr(), a.ptr.as_ptr()) };
         self.new_tensor_raw(tensor)
     }
-    extern "C" fn save_file_callback(name: *const i8) {
-        rust_utils::rust_utils_save_elements(name);
-        rust_utils::rust_utils_clear();
-    }
+
     /// save the file
     pub fn op_save_file(&self, a: &Tensor) -> Tensor {
-        let tensor = unsafe {
-            sys::ggml_save_file_inplace(
-                self.as_ptr(),
-                a.ptr.as_ptr(),
-                Some(Self::save_file_callback),
-            )
-        };
+        let tensor = unsafe { sys::ggml_save_file_inplace(self.as_ptr(), a.ptr.as_ptr()) };
         self.new_tensor_raw(tensor)
     }
-    extern "C" fn save_input_record_callback() {
-        rust_utils::save_input();
-    }
+
     /// save the current input sequence
     pub fn op_save_input_record(&self, a: &Tensor) -> Tensor {
-        let tensor = unsafe {
-            sys::ggml_save_input_record(
-                self.as_ptr(),
-                a.ptr.as_ptr(),
-                Some(Self::save_input_record_callback),
-            )
-        };
+        let tensor = unsafe { sys::ggml_save_input_record(self.as_ptr(), a.ptr.as_ptr()) };
         self.new_tensor_raw(tensor)
     }
 

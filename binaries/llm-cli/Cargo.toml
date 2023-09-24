@@ -15,6 +15,7 @@ path = "src/main.rs"
 llm = { path = "../../crates/llm", version = "0.2.0-dev", default-features = false, features = [
     "models",
 ] }
+ggml-sys = { path = "../../crates/ggml/sys" }
 
 rust_utils = { path = "../../crates/rust_utils" }
 bytesize = { workspace = true }

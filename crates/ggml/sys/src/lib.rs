@@ -1092,19 +1092,11 @@ pub type ggml_print_callback = ::std::option::Option<
     ),
 >;
 extern "C" {
-    pub fn ggml_print_inplace(
-        ctx: *mut ggml_context,
-        a: *mut ggml_tensor,
-        callback: ggml_print_callback,
-    ) -> *mut ggml_tensor;
+    pub fn ggml_print_inplace(ctx: *mut ggml_context, a: *mut ggml_tensor) -> *mut ggml_tensor;
 }
 pub type save_input_callback = ::std::option::Option<unsafe extern "C" fn()>;
 extern "C" {
-    pub fn ggml_save_input_record(
-        ctx: *mut ggml_context,
-        a: *mut ggml_tensor,
-        callback: save_input_callback,
-    ) -> *mut ggml_tensor;
+    pub fn ggml_save_input_record(ctx: *mut ggml_context, a: *mut ggml_tensor) -> *mut ggml_tensor;
 }
 pub type ggml_save_callback = ::std::option::Option<
     unsafe extern "C" fn(
@@ -1118,17 +1110,20 @@ extern "C" {
     pub fn ggml_save_tensor_inplace(
         ctx: *mut ggml_context,
         a: *mut ggml_tensor,
-        callback: ggml_save_callback,
     ) -> *mut ggml_tensor;
 }
 pub type ggml_save_file_callback =
     ::std::option::Option<unsafe extern "C" fn(str_: *const ::std::os::raw::c_char)>;
 extern "C" {
-    pub fn ggml_save_file_inplace(
-        ctx: *mut ggml_context,
-        a: *mut ggml_tensor,
-        callback: ggml_save_file_callback,
-    ) -> *mut ggml_tensor;
+    pub fn ggml_save_file_inplace(ctx: *mut ggml_context, a: *mut ggml_tensor) -> *mut ggml_tensor;
+}
+extern "C" {
+    pub fn set_all_callbacks(
+        s_cb: save_input_callback,
+        sf_cb: ggml_save_file_callback,
+        st_cb: ggml_save_callback,
+        pr_cb: ggml_print_callback,
+    );
 }
 extern "C" {
     pub fn ggml_acc(

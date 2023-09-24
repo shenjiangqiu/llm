@@ -10,3 +10,5 @@ license.workspace = true
 [dependencies]
 rust_utils = { path = "../../crates/rust_utils" }
 bincode = { workspace = true }
+serde = { version = "1.0", features = ["derive"] }
+clap.workspace = true

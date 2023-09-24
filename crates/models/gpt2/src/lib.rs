@@ -144,7 +144,10 @@ impl KnownModel for Gpt2 {
         let input_len = input_tokens.len();
         let session_len = session.n_past;
         let ctx_size = self.params.context_size;
-
+        let input_tokens_string = self.tokenizer.decode(input_tokens.to_vec(), true);
+        let input_tokens_string: String =
+            input_tokens_string.into_iter().map(|i| i as char).collect();
+        *rust_utils::CURRENT_INPUT_TOKEN.write().unwrap() = input_tokens_string;
         let Hyperparameters {
             n_embd,
             n_head,
@@ -189,10 +192,20 @@ impl KnownModel for Gpt2 {
                 // self-attn
                 let nb = current.get_nb()[1];
                 let f32_size = std::mem::size_of::<f32>();
-                let qcur = ctx0.op_view_2d(&current, (n_embd, input_len), nb, 0);
-                let kcur = ctx0.op_view_2d(&current, (n_embd, input_len), nb, f32_size * n_embd);
-                let vcur =
-                    ctx0.op_view_2d(&current, (n_embd, input_len), nb, f32_size * n_embd * 2);
+                let qcur = ctx0
+                    .op_view_2d(&current, (n_embd, input_len), nb, 0)
+                    .set_name(&format!("qcur_{}", il));
+                let kcur = ctx0
+                    .op_view_2d(&current, (n_embd, input_len), nb, f32_size * n_embd)
+                    .set_name(&format!("kcur_{}", il));
+
+                // ctx0.op_save_tensor(&qcur);
+                // ctx0.op_save_tensor(&kcur);
+
+                let vcur = ctx0
+                    .op_view_2d(&current, (n_embd, input_len), nb, f32_size * n_embd * 2)
+                    .set_name(&format!("vcur_{}", il));
+                // ctx0.op_save_tensor(&vcur);
 
                 if input_len >= 1 {
                     let k = ctx0.op_view_1d(
@@ -232,7 +245,11 @@ impl KnownModel for Gpt2 {
                     (0, 2, 1, 3),
                 );
 
+                let k = ctx0.op_save_tensor(&k).set_name(&format!("k_{}", il));
+                let q = ctx0.op_save_tensor(&q).set_name(&format!("q_{}", il));
                 let kq = ctx0.op_mul_mat(&k, &q);
+                let kq: Tensor = ctx0.op_save_tensor(&kq).set_name(&format!("kq_{}", il));
+
                 let kq_scaled = ctx0.op_scale_inplace(
                     &kq,
                     &ctx0.new_f32(1f32 / f32::sqrt(n_embd as f32 / n_head as f32)),
@@ -264,7 +281,11 @@ impl KnownModel for Gpt2 {
                 );
 
                 let kqv = ctx0.op_mul_mat(&v_trans, &kq_softmax);
+                let kqv: Tensor = ctx0.op_save_tensor(&kqv).set_name(&format!("kqv_{}", il));
                 let kqv_merged = ctx0.op_permute(&kqv, (0, 2, 1, 3));
+                let kqv_merged: Tensor = ctx0
+                    .op_save_tensor(&kqv_merged)
+                    .set_name(&format!("kqv_merged_{}", il));
 
                 current = ctx0.op_cpy(
                     &kqv_merged,
@@ -304,7 +325,6 @@ impl KnownModel for Gpt2 {
                 // input for next layer
                 input_layer = ctx0.op_add(&current, &ff_in);
             }
-
             ctx0.use_scratch(builder.get_scratch(0));
 
             // normalization
@@ -314,10 +334,15 @@ impl KnownModel for Gpt2 {
             ctx0.use_scratch(None);
             ctx0.set_offloading(false);
 
+            input_layer = ctx0.op_save_tensor(&input_layer).set_name("embeddings");
+
             let embeddings_tensor: ggml::Tensor = input_layer.share();
 
             let head = self.lm_head.as_ref().unwrap_or(&self.wte);
             input_layer = ctx0.op_mul_mat(head, &input_layer);
+
+            input_layer = ctx0.op_save_tensor(&input_layer).set_name("lm_head");
+            input_layer = ctx0.op_save_input_record(&input_layer);
 
             (
                 gf,
@@ -329,9 +354,15 @@ impl KnownModel for Gpt2 {
         });
 
         // finish evaluation
+        println!("input_len: {}", input_len);
+        println!("n_vocab: {}", n_vocab);
+        println!("n_embd: {}", n_embd);
+        // read the logits of last token into session.last_logits
         common::read_last_token(session, &outputs.result, n_vocab, input_len);
+
         common::extract_logits(output_request, &outputs.result, n_vocab, input_len);
         common::extract_embeddings(output_request, &outputs.embedding_result, n_embd, input_len);
+        println!("output_request: {:?}", output_request.embeddings);
     }
 
     fn hyperparameters(&self) -> &Self::Hyperparameters {

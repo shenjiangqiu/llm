@@ -1,6 +1,5 @@
 use std::{
     convert::Infallible,
-    ffi::CString,
     fs::File,
     io::{BufReader, BufWriter},
 };
@@ -21,7 +20,15 @@ fn main() -> eyre::Result<()> {
         .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
         .with_ansi(std::io::stderr().is_terminal())
         .init();
-
+    // setup the callback for ggml_sys
+    unsafe {
+        ggml_sys::set_all_callbacks(
+            Some(rust_utils::save_input_record_callback),
+            Some(rust_utils::save_file_callback),
+            Some(rust_utils::save_tensor_callback),
+            Some(rust_utils::print_callback),
+        );
+    }
     color_eyre::install()?;
 
     let args = Args::parse();
@@ -35,9 +42,6 @@ fn main() -> eyre::Result<()> {
         Args::Quantize(args) => quantize(&args),
     };
 
-    // save the content to file
-    let file_name = CString::new("input_record.bin").unwrap();
-    rust_utils::rust_utils_save_elements(file_name.as_ptr());
     r
 }
 
@@ -115,7 +119,8 @@ fn infer(args: &cli_args::Infer) -> eyre::Result<()> {
         // Write the memory to the cache file
         snapshot::write_session(session, session_path);
     }
-
+    // save the content to file
+    rust_utils::save_file(&args.save_tensor_path);
     Ok(())
 }
 
